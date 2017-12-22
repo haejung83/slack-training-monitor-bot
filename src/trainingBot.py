@@ -4,7 +4,7 @@ import asyncio
 from slacker import Slacker
 from botPython3ExecutionManager import BotPython3ExecutionManager
 
-_CONSTANT_USAGE_PREFIX = 'Commands : list, run <commands>, stop <command>'
+_CONSTANT_USAGE_PREFIX = 'Commands :\n\tlist\n\tstatus\n\trun <commands>\n\tstop <command>'
 _CONSTANT_ENABLE_LOG = 'enable_log'
 
 class RequestCommand:
