@@ -3,7 +3,7 @@
     {
       "category": "test",
       "name": "simple",
-      "file": "simple_task.py",
+      "file": "task_simple.py",
       "args": ""
     },
     {
