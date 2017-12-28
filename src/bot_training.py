@@ -38,9 +38,9 @@ class RequestCommandParser:
 class TrainingBot:
     def __init__(self, config, cmdLoader):
         self._config = config
-        self._cmdLoader = cmdLoader
-        self._isRunningLoop = False
-        self._executionManager = BotExecutionManager()
+        self._cmd_loader = cmdLoader
+        self._is_running = False
+        self._execution_manager = BotExecutionManager()
         self._flag = dict()
         self._sock_endpoint = None
         self._setup_flag()
@@ -92,27 +92,27 @@ class TrainingBot:
 
         if req_type == 'list':
             cmd_list_str = str()
-            for cmd in self._cmdLoader.get_command_name_list():
+            for cmd in self._cmd_loader.get_command_name_list():
                 cmd_list_str += cmd + '\n'
 
             self._set_result(cmd_list_str)
         elif req_type == 'run':
             if len(req_param) > 0:
                 self._set_result("Run with " + req_param[0])
-                exec_command = self._cmdLoader.get_command(name=req_param[0])
-                self._executionManager.execute(exec_command.get_file(), args=exec_command.get_split_args())
+                exec_command = self._cmd_loader.get_command(name=req_param[0])
+                self._execution_manager.execute(exec_command)
             else:
                 self._set_result("Can't run with given command!")
         elif req_type == 'stop':
             if len(req_param) > 0:
                 self._set_result("Stopped " + req_param[0])
-                exec_command = self._cmdLoader.get_command(name=req_param[0])
-                self._executionManager.kill(exec_command.get_file())
+                exec_command = self._cmd_loader.get_command(name=req_param[0])
+                self._execution_manager.kill(exec_command)
             else:
                 self._set_result("Can't run with given command!")
         elif req_type == 'status':
-            # TODO : Not implemented yet
-            self._set_result('Check a status')
+            running_processes = self._execution_manager.get_running_processes()
+            self._set_result('Check a status %s' %(running_processes))
         else:
             self._build_default_message_dict()
 
@@ -133,7 +133,7 @@ class TrainingBot:
         # Send a command list
         await ws.send(json.dumps(self._defaultMessageDict))
 
-        while self._isRunningLoop:
+        while self._is_running:
             message_json = await ws.recv()
 
             #if self._flag[_CONSTANT_ENABLE_LOG]:
@@ -148,24 +148,33 @@ class TrainingBot:
             except Exception as e:
                 print("[%s] Exception: %s" %(__name__, e))
 
+    async def _check_proc_loop(self):
+        while True:
+            print('check_proc')
+            await asyncio.sleep(5)
+
     def start(self):
         if self._flag[_CONSTANT_ENABLE_LOG]:
             print("[%s] Start" %(__name__))
 
-        self._isRunningLoop = True
+        self._is_running = True
 
         response = self._connect()
         self._sock_endpoint = response.body['url']
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        asyncio.get_event_loop().run_until_complete(self._loop())
+
+        task = [asyncio.ensure_future(self._loop()),
+                asyncio.ensure_future(self._check_proc_loop())]
+
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*task))
 
     def stop(self):
         if self._flag[_CONSTANT_ENABLE_LOG]:
             print("[%s] Stop" %(__name__))
 
-        self._isRunningLoop = False
-        self._executionManager.dispose()
+        self._is_running = False
+        self._execution_manager.dispose()
         self._disconnect()
 
